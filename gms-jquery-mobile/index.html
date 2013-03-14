@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+  
+  <head>
+    <title>Global Modern Services</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="//ajax.aspnetcdn.com/ajax/jquery.mobile/1.2.0/jquery.mobile-1.2.0.min.css" />
+    <link rel="stylesheet" href="css/main.css" />
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script type="text/javascript" src="//ajax.aspnetcdn.com/ajax/jquery.mobile/1.2.0/jquery.mobile-1.2.0.min.js"></script>
+  </head>
+  
+  <body>
+    <div data-role="page" id="main" data-theme="d">
+      <div data-role="header" data-theme="d" align="center">
+        <img src="images/gms.png" />
+        <a id="auth">Sign In</a>
+      </div>
+      <div data-role="navbar">
+        <ul id="menulist">
+          <li><a href="#workers"><img src="images/workers.png" class="ui-li-icon"><h4>Workers</h4></a>
+          </li>
+          <li><a href="#myInbox"><img src="images/inbox.png" class="ui-li-icon"><h4>My Inbox</h4></a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    
+    <div data-role="page" id="workers" data-add-back-btn="true" data-theme="d">
+      <div data-role="header" data-theme="d" align="center">
+        <img src="images/gms.png" />
+      </div>
+      <div data-role="content">
+         <h2>Workers</h2>
+          <input type="text" id="workerSearch">
+
+        <div>
+          <ul id="workersList" data-role="listview" data-inset="true" />
+        </div> <a id="moreButton" data-role="button">More</a>
+
+      </div>
+    </div>
+    
+    <div data-role="page" id="worker" data-add-back-btn="true" data-theme="d">
+      <div data-role="header" data-theme="d" align="center">
+        <img src="images/gms.png" />
+      </div>
+      <div data-role="content">
+        <h2 id="worker-name" />
+        <h3 id="worker-businessTitle" />
+      </div>
+      <div data-role="content">
+        <h3 id="worker-fullWorkAddress" />
+      </div>
+      <div>
+        <ul id="workerActions" data-role="listview" data-inset="true" data-theme="d"></ul>
+      </div>
+    </div>
+    
+    <div data-role="page" id="historyPage" data-add-back-btn="true" data-theme="d">
+      <div data-role="header" data-theme="d" align="center">
+        <img src="images/gms.png" />
+      </div>
+      <div data-role="content">
+         <h2>Worker History</h2>
+
+        <div>
+          <ul id="historyList" data-role="listview" data-inset="true" />
+        </div>
+      </div>
+    </div>
+    
+    <div data-role="page" id="myInbox" data-add-back-btn="true" data-theme="d">
+      <div data-role="header" data-theme="d" align="center">
+        <img src="images/gms.png" />
+      </div>
+      <div data-role="content">
+         <h2>My Inbox</h2>
+
+        <ul id="inboxTaskList" data-role="listview" data-inset="true" />
+      </div>
+    </div>
+    
+    <div data-role="page" id="businessTitleEdit" data-add-back-btn="true"
+    data-theme="d">
+      <div data-role="header" data-theme="d" align="center">
+        <img src="images/gms.png" />
+      </div>
+      <div id="workerView" data-role="content">
+        <p id="workerName" />
+        <form id="businessTitleForm">
+          <div data-role="fieldcontain">
+            <label for="basic">Business Title:</label>
+            <input id="proposedBusinessTitle" type="text" name="Proposed Business Title" data-mini="true" />
+          </div>
+          <input type="hidden" id="workerHref">
+          <input type="submit" value="Save" data-mini="true" />
+        </form>
+      </div>
+    </div>
+    
+    <div data-role="page" id="inboxTaskReview" data-add-back-btn="true"
+    data-theme="d">
+      <div data-role="header" data-theme="d" align="center">
+        <img src="images/gms.png" />
+      </div>
+      <div data-role="content">
+        <p id="reviewWorkerName" />
+        <div> 
+        
+          <a id="approveButton" href="#myInbox" data-role="button" data-rel="back">Approve</a>
+          <a id="denyButton" href="#myInbox" data-role="button" data-rel="back">Deny</a>
+        </div>
+      </div>
+    </div>
+  </body>
+  
+  <script>
+    var url = localStorage.getItem('settings-api');
+    var workerOffset = 0;
+    var reviewTask;
+
+    function setAccessToken() {
+        hash = location.hash;
+        if (hash) {
+          accessToken = hash.match(/[?&#]access_token=([^&]*)?/)[1];
+          if (accessToken){
+            sessionStorage.setItem( 'accessToken', accessToken );
+          }
+        } else {
+            accessToken = sessionStorage.getItem('accessToken');
+        }
+        
+        $.ajaxSetup({
+            headers: {
+              'Authorization': "Bearer " + accessToken
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+            	var response = $.parseJSON(xhr.responseText);
+            	var errorMsg = response.error;
+            	for (var i in response.errors) {
+            		errorMsg += '\n' + response.errors[i].error;
+            	}
+                alert(errorMsg);
+            }
+          });
+    }
+    
+    function inboxTaskReview(href, businessProcessHref) {
+      $.getJSON(businessProcessHref, function (data) {
+        event = data;
+        $('#reviewWorkerName').text(data.descriptor);
+        
+        // TODO: display business process specific detail
+      });
+      reviewTaskHref = href;
+
+      $.mobile.changePage('#inboxTaskReview');
+    };
+    
+    function businessTitleEdit(href) {
+      $.getJSON(href, function (data) {
+        event = data;
+        $('#workerName').text(data.descriptor);
+        
+        $('#proposedBusinessTitle').val(data.businessTitle);
+        $('#workerHref').val(href);
+      });
+
+      $.mobile.changePage('#businessTitleEdit');
+
+    };
+
+    function getWorkers(offset) {
+      $.getJSON(url + '/workers', { offset: offset, search: $('#workerSearch').val()}, function (data) {
+
+        if (offset == 0) {
+          $('#workersList').empty();
+        }
+
+        $.each(data.data, function (key, worker) {
+          $('#workersList').append('<li><a href="javascript:void(0)" onClick="showWorker(\'' + worker.href + '\')"><img src="images/worker.png" class="ui-li-icon"><h4>' + worker.descriptor + '</h4><p>' + worker.primaryWorkEmail + '</p></a></li>');
+        });
+
+        $('#workersList').listview('refresh');
+      });
+    };
+
+    function showWorker(href) {
+      $.getJSON(href, function (data) {
+        $('#worker-name').text(data.descriptor);
+        $('#worker-businessTitle').text(data.businessTitle);
+        $('#worker-fullWorkAddress').html(data.fullWorkAddress);
+
+        $('#workerActions').empty();
+        $('#workerActions').append('<li><a href="javascript:void(0)" onClick="showHistory(\'' + data.href + '/history' + '\')"><h4>History</h4></a></li>');
+        
+        if (data.businessTitle) {
+          $('#worker-businessTitle').text(data.businessTitle);
+          $('#workerActions').append('<li><a href="javascript:void(0)" onClick="businessTitleEdit(\'' + href + '\')"><h4>Change Business Title</h4></a></li>');
+        }
+        $('#workerActions').listview('refresh');
+      });
+      
+      $.mobile.changePage('#worker');
+    };
+
+    function showHistory(href) {
+      $.getJSON(href, function (data) {
+        $('#historyList').empty();
+        $.each(data.data, function (key, businessProcess) {
+          $('#historyList').append('<li><img src="images/worker.png" class="ui-li-icon"><h4>' + businessProcess.descriptor + '</h4><p>' + new Date(businessProcess.initiated).toDateString() + '</p></li>');
+          $('#historyList').listview('refresh');
+        });
+      });
+      
+      $.mobile.changePage('#historyPage');
+    };
+
+    function getInboxTasks() {
+      $.getJSON(url + '/workers/me/inboxTasks', function (data) {
+        $('#inboxTaskList').empty();
+
+        $.each(data.data, function (key, task) {
+          $('#inboxTaskList').append('<li><a href="" onClick="inboxTaskReview(\'' + task.href + '\', \'' + task.overallProcess.href + '\')"><img src="images/worker.png" class="ui-li-icon"><h5>' + task.overallProcess.descriptor + '</h5><p>' + task.stepType.descriptor + '</p><p>' + task.status.descriptor + '</p></a></li>');
+        });
+
+        $('#inboxTaskList').listview('refresh');
+      });
+    };
+
+    $('#auth').attr('href', localStorage.getItem('settings-auth') + '?response_type=token&client_id=' + localStorage.getItem('settings-appKey'));
+    setAccessToken();
+
+    $('#businessTitleForm').submit(function () {
+      var data = {
+        "proposedBusinessTitle": $('#proposedBusinessTitle').val()
+      };
+      $.ajax({
+        type: 'POST',
+        contentType: 'application/json',
+        url: $('#workerHref').val() + '/businessTitleChanges',
+        dataType: 'json',
+        data: JSON.stringify(data)
+      });
+      $.mobile.changePage('#worker');
+      return false;
+    });
+
+    $('#workers').live('pageshow', function (event, ui) {
+      workerOffset = 0;
+      getWorkers(workerOffset);
+    });
+
+    $('#myInbox').live('pageshow', function (event, ui) {
+    	getInboxTasks();
+    });
+
+    $('#approveButton').click(function (e) {
+      $.ajax({
+        type: 'PUT',
+        contentType: 'application/json',
+        url: reviewTaskHref + "?type=approval",
+        dataType: 'json',
+        data: "{}",
+        success: function () {
+            getInboxTasks();
+        }
+      });
+    });
+
+
+    $('#denyButton').click(function (e) {
+      $.ajax({
+        type: 'PUT',
+        contentType: 'application/json',
+        url: reviewTaskHref + "?type=denial",
+        dataType: 'json',
+        data: "{}",
+        success: function () {
+        	getInboxTasks();
+        }
+      });
+    });    
+    
+    $('#workerSearch').keypress(function (e) {
+    	  if (e.which == 13) {
+    	      workerOffset = 0;
+    	      getWorkers(workerOffset);
+    	  }
+    	});
+    
+    $('#moreButton').click(function (e) {
+      workerOffset = workerOffset + 20;
+      getWorkers(workerOffset);
+    });
+  </script>
+
+</html>
